@@ -1,4 +1,11 @@
+from app.config import normalize_database_url
 from app.parsing import parse_skills
+
+
+def test_normalize_database_url_uses_psycopg_and_keeps_ssl():
+    url = normalize_database_url("postgresql://user:pass@host/neondb?sslmode=require")
+    assert url == "postgresql+psycopg://user:pass@host/neondb?sslmode=require"
+    assert normalize_database_url(url) == url
 from app.ranking import jaccard, match_score, ndcg_at_k, precision_at_k, recall_at_k, reciprocal_rank
 
 

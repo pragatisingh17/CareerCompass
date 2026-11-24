@@ -37,3 +37,20 @@ API routes:
 - `GET /candidates?q=data scientist`
 
 `load_postgres.py` drops and recreates the tables before each load.
+
+## Live demo
+
+The public app runs on [Streamlit Community Cloud](https://share.streamlit.io) and reads a hosted Postgres database. Search uses Postgres full-text search, so the demo cannot run from a file database.
+
+1. Create a free project at [Neon](https://neon.tech). Copy the connection string. It looks like `postgresql://USER:PASSWORD@HOST/neondb?sslmode=require`.
+2. Open https://share.streamlit.io and sign in with GitHub as `pragatisingh17`.
+3. Create an app from https://github.com/pragatisingh17/CareerCompass/blob/main/streamlit_app.py on branch `main`.
+4. In Advanced settings, set Python to 3.12 and paste this secret, using the Neon string:
+
+```toml
+DATABASE_URL = "postgresql://USER:PASSWORD@HOST/neondb?sslmode=require"
+```
+
+5. Deploy. The app URL is on `streamlit.app`. The first open downloads the public job and profile files into Neon. Later visits only query that database.
+
+Do not commit the Neon password. Streamlit stores that secret in the app settings, not in git.

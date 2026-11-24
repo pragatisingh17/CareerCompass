@@ -9,6 +9,7 @@ import pandas as pd
 from sqlalchemy import text
 
 from app.config import DATA_DIR
+from app.datasets import download
 from app.db import engine
 from app.models import Base
 from app.parsing import parse_skills
@@ -41,6 +42,27 @@ MATCH_COLUMNS = [
     "semantic_score",
     "candidate_rank",
 ]
+
+
+def load_if_empty() -> bool:
+    """Create tables and load jobs plus profiles when the database has no jobs.
+
+    Returns True when this call inserted the dataset. Match labels stay out of
+    this path; scripts/load_postgres.py still loads them for local evaluation.
+    """
+    Base.metadata.create_all(engine)
+    with engine.connect() as connection:
+        job_count = connection.execute(text("SELECT COUNT(*) FROM jobs")).scalar_one()
+    if job_count:
+        return False
+
+    download(("job.csv", "cv.csv"))
+    jobs = pd.read_csv(DATA_DIR / "job.csv", usecols=JOB_COLUMNS)
+    candidates = pd.read_csv(DATA_DIR / "cv.csv", usecols=CANDIDATE_COLUMNS)
+    with engine.begin() as connection:
+        _insert_jobs(connection, jobs)
+        _insert_candidates(connection, candidates)
+    return True
 
 
 def main() -> None:
