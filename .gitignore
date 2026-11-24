@@ -8,4 +8,4 @@ __pycache__/
 .ruff_cache/
 data/raw/
 *.egg-info/
-.streamlit/
+.streamlit/secrets.toml
