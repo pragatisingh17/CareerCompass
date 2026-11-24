@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 
 from sqlalchemy import func, literal, select
@@ -6,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.models import Candidate, Job, Match
 from app.ranking import jaccard, match_score
+
+_QUERY_WORD = re.compile(r"[A-Za-z0-9]+")
 
 
 @dataclass
@@ -20,13 +23,31 @@ class JobHit:
     overlap: list[str]
 
 
+def _or_websearch_text(query: str) -> str:
+    """OR each word so any of them can match.
+
+    websearch_to_tsquery ANDs bare words. This dataset has no "backend"
+    lexeme (a posting may say "back-end" instead), so "python backend"
+    becomes 'python' & 'backend' and matches nothing. Joining the words
+    with OR lets each word match on its own. ts_rank_cd still ranks a job
+    that contains more of the words higher.
+    """
+    words = _QUERY_WORD.findall(query)
+    if not words:
+        return query
+    return " OR ".join(words)
+
+
 def search_jobs(session: Session, query: str, limit: int = 10, category: str | None = None) -> list[JobHit]:
     query = query.strip()
     if not query:
         return []
     # literal("english") alone binds as VARCHAR, and Postgres has no
     # websearch_to_tsquery(varchar, varchar). The config must be regconfig.
-    tsquery = func.websearch_to_tsquery(literal("english", type_=REGCONFIG), query)
+    tsquery = func.websearch_to_tsquery(
+        literal("english", type_=REGCONFIG),
+        _or_websearch_text(query),
+    )
     rank = func.ts_rank_cd(Job.search_document, tsquery)
     stmt = select(Job, rank).where(Job.search_document.bool_op("@@")(tsquery))
     if category:
