@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: careercompass
+      POSTGRES_PASSWORD: careercompass
+      POSTGRES_DB: careercompass
+    ports:
+      - "5432:5432"
+    volumes:
+      - careercompass_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careercompass -d careercompass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  careercompass_pg:
