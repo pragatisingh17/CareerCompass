@@ -1,6 +1,5 @@
 import streamlit as st
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import get_session
 from app.repository import find_candidates, recommend_for_candidate, search_jobs, similar_jobs
@@ -17,14 +16,11 @@ def render() -> None:
             load_if_empty()
         session = get_session()
         session.execute(text("SELECT 1"))
-    except SQLAlchemyError as exc:
-        st.error(
-            "Could not connect to Postgres. Set DATABASE_URL to a Postgres connection string, then reload. "
-            f"{exc}"
-        )
-        st.stop()
     except Exception as exc:
-        st.error(f"Could not load the job dataset. {exc}")
+        summary = str(exc).split("\n", 1)[0]
+        if len(summary) > 400:
+            summary = summary[:400] + "..."
+        st.error(f"Could not prepare the database. {summary}")
         st.stop()
 
     mode = st.sidebar.radio("Mode", ["Search", "Recommend"])

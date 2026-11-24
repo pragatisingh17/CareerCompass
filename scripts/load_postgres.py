@@ -56,6 +56,10 @@ def load_if_empty() -> bool:
     if job_count:
         return False
 
+    # Recreate empty tables so a failed first load cannot leave job_id as a 32-bit integer.
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+
     download(("job.csv", "cv.csv"))
     jobs = pd.read_csv(DATA_DIR / "job.csv", usecols=JOB_COLUMNS)
     candidates = pd.read_csv(DATA_DIR / "cv.csv", usecols=CANDIDATE_COLUMNS)
