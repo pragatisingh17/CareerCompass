@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from sqlalchemy import func, literal, select
+from sqlalchemy.dialects.postgresql import REGCONFIG
 from sqlalchemy.orm import Session
 
 from app.models import Candidate, Job, Match
@@ -23,7 +24,9 @@ def search_jobs(session: Session, query: str, limit: int = 10, category: str | N
     query = query.strip()
     if not query:
         return []
-    tsquery = func.websearch_to_tsquery(literal("english"), query)
+    # literal("english") alone binds as VARCHAR, and Postgres has no
+    # websearch_to_tsquery(varchar, varchar). The config must be regconfig.
+    tsquery = func.websearch_to_tsquery(literal("english", type_=REGCONFIG), query)
     rank = func.ts_rank_cd(Job.search_document, tsquery)
     stmt = select(Job, rank).where(Job.search_document.bool_op("@@")(tsquery))
     if category:
